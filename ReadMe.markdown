@@ -71,11 +71,11 @@ There isn't any reason the script can't be used on platforms other than macOS, b
 There's not really a nice way of uninstalling `apache-config` at the moment, due to editing your existing `httpd.conf` file. The easiest way is to open `httpd.conf` and remove all blocks that look like this:
 
 ```conf
-Define VENDOR\_MPLEWIS\_CONFIG\_CONTROLLER\_{number}\_{number} 'true'
+Define VENDOR_MPLEWIS_CONFIG_CONTROLLER_{number}_{number} 'true'
 
-<IfDefine VENDOR\_MPLEWIS\_CONFIG\_CONTROLLER\_{number}\_{number}>
-	<IfDefine !VENDOR\_MPLEWIS\_CONFIG\_CONTROLLER>
-		Define VENDOR\_MPLEWIS\_CONFIG\_CONTROLLER '{number}_{number}'
+<IfDefine VENDOR_MPLEWIS_CONFIG_CONTROLLER_{number}_{number}>
+	<IfDefine !VENDOR_MPLEWIS_CONFIG_CONTROLLER>
+		Define VENDOR_MPLEWIS_CONFIG_CONTROLLER '{number}_{number}'
 		Include {Apache config root}/other/config-controller.conf
 	</IfDefine>
 </IfDefine>

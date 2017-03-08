@@ -199,7 +199,7 @@ then
 		printStatus "Adding/updating version environment variable in '${httpdFile}'... "
 		defineDirective="Define ${environmentVariable}"
 		
-		if ! grep "${defineDirective}" "${httpdFile}"
+		if ! grep "${defineDirective}" "${httpdFile}" 1>/dev/null 2>&1
 		then
 			cat <<-EOF >> "${httpdFile}"
 				
@@ -221,7 +221,7 @@ then
 		#There doesn't seem to be a better way to do this on a default config file, so an environment variable was added to prevent multiple blocks from executing simultaneously
 		printStatus "Adding include statement to '${httpdFile}'... "
 		
-		if ! grep "reqenv('${environmentVariable}_${version}') == 'true'" "${httpdFile}"
+		if ! grep "reqenv('${environmentVariable}_${version}') == 'true'" "${httpdFile}" 1>/dev/null 2>&1
 		then
 			cat <<-EOF >> "${httpdFile}"
 				

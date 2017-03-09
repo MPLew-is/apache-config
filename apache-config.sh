@@ -63,6 +63,7 @@ printUsageMessage()
 	cat <<-EOF
 		Check installation: ${0} [--quiet] check
 		Install:            ${0} [--quiet] install
+		List configuration: ${0} list (enabled | available | disabled) (${module} | ${config} | ${site} | ${cleanup})
 		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME} [{NAME}...]
 		Help:               ${0} help [--verbose]
 		
@@ -136,6 +137,7 @@ command_help()
 		    "help":     print this help message
 		    "check":    check if the "install" command has been performed
 		    "install":  creates the needed files, directories, and configuration directives needed for this script
+		    "list":     lists all configuration files of the given type and status (enabled, available, or disabled)
 		    "enable":   enables the specified config file type and name
 		    "disable":  disables the specified config file type and name
 		    
@@ -461,9 +463,59 @@ command_check()
 	return 0
 }
 
+#List all configuration files of the given status and type
+command_list()
+{
+	#Check installation before performing list command
+	command_check 1>/dev/null
+	
+	
+	#Get the configuration type, then shift it off the arguments
+	configType="$(validateType "${1}")"
+	shift
+	
+	
+	#Get the requested status, and shift it off the arguments
+	status="${1}"
+	shift
+	
+	#Validate input status, failing if an incorrect status is given
+	if [ "${status}" != "enabled" ] && [ "${status}" != "available" ] && [ "${status}" != "disabled" ]
+	then
+		catStatus "Unknown status '${status}'" 1>&2
+		return 61
+	fi
+	
+	
+	statusPath="${status}"
+	if [ "${status}" = "disabled" ]
+	then
+		statusPath="available"
+	fi
+	
+	directoryPrefix="${configDirectory}/${configType}s"
+	directory="${configDirectory}/${configType}s-${statusPath}"
+	find "${directory}" -name "*.conf" | sed -e "s:^${directory}/::g" -e "s:.${fileSuffix}$::g" | \
+	{
+		if [ "${status}" = "disabled" ]
+		then
+			while read -r fileName
+			do
+				if [ ! -L "${directoryPrefix}-enabled/${fileName}.${fileSuffix}" ]
+				then
+					echo "${fileName}"
+				fi
+			done
+			
+		else
+			cat
+		fi
+	}
+}
+
 
 #Parse requested command, and call the corresponding function with the remaining arguments
-if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ] || [ "${1}" = "check" ]
+if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ] || [ "${1}" = "check" ] || [ "${1}" = "list" ]
 then
 	commandFunction="command_${1}"
 	

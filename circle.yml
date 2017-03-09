@@ -1,0 +1,34 @@
+machine:
+    environment:
+        #Force all scripts to be automated and not request user input
+        DEBIAN_FRONTEND: noninteractive
+    
+
+dependencies:
+    cache_directories:
+        - "~/brew-tap"
+    
+    override:
+        #Add the trusty backports repository for shellcheck
+        - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-backports restricted main universe"
+        
+        #Update package lists
+        - sudo apt-get -qq -o=Dpkg::Use-Pty=0 update
+        
+        #Install shellcheck
+        - sudo apt-get -qq -o=Dpkg::Use-Pty=0 install shellcheck 
+    
+
+test:
+    override:
+        #Run shellcheck on all scripts in the root directory
+        - shellcheck *.sh
+    
+
+deployment:
+    release:
+        tag: /v[0-9]+(\.[0-9]+)*/
+        commands:
+            - scripts/deploy.sh
+        
+    

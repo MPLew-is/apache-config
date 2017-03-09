@@ -33,13 +33,25 @@ The script is written to be as POSIX-compliant as possible, but if you find any 
 
 ### Basic overview of commands ###
 
-- `apache-config --help` prints a help message explaining the purpose of the script
+- `apache-config help` prints a help message explaining the purpose of the script
 
-	- `apache-config --help --verbose` prints even more help text
+	- `apache-config help --verbose` prints even more help text
+
+- `apache-config check` checks that `apache-config` has been installed, exiting with a non-zero status if not
 
 - `apache-config install` sets up the needed directories and configuration files
 
 	- Please be aware, this command adds a few lines at the end of your existing `httpd.conf` file, but they can be removed easily if you ever want to uninstall
+
+- `apache-config list {type} {status}` lists all files with the given type and status
+
+	- The supported statuses are:
+	
+		- `enabled`: any currently-enabled files
+		
+		- `available`: any files in the "{type}-available" directory
+		
+		- `disabled`: any files in the "{type}-available" directory that are not enabled
 
 - `apache-config enable {type} {name}` symlinks a file from an "available" folder into an "enabled" folder, from where Apache will include it
 
@@ -48,6 +60,9 @@ The script is written to be as POSIX-compliant as possible, but if you find any 
 - `apache-config disable {type} {name}` removes the links created by `apache-config enable`
 
 - `apache-config --quiet {command}` can be used to silence status output from the script (`--help` excluded)
+
+
+More information is available by running `apache-config help` once installed
 
 
 ### Installation with homebrew (recommended) ###
@@ -139,11 +154,21 @@ You should never place or edit files directly into the `*-enabled` folders; rath
 
 ### Summary (TL;DR) ###
 
-1. Copy or symlink your files into `{Apache configuration root}/other/*-available` (generally something like `/usr/local/etc/apache2/2.4/other/*-available` if you installed Apache using homebrew). These files must end with `.conf` to be included in Apache's configuration.
+1. Copy or symlink your files into `{Apache configuration root}/other/*-available` (generally something like `/usr/local/etc/apache2/2.4/other/*-available` if you installed Apache using homebrew)
 
-2. Enable the file with `apache-config enable {type} {name}`. For instance, if you wanted to add a module named `rewrite` and copied a file named `rewrite.conf` to `modules-available`, the command would be `apache-config enable module rewrite`.
+	- These files must end with `.conf` to be included in Apache's configuration
 
-3. Disable the file with `apache-config disable {type} {name}`. Just undoes #2.
+	- You can also provide the filename to the enable command, and it will copy your files into the "available" directory for you
+
+2. Enable the file with `apache-config enable {type} {name}`
+
+	- For instance, if you wanted to add a module named `rewrite` and copied a file named `rewrite.conf` to `modules-available`, the command would be `apache-config enable module rewrite`
+	
+	- If you provide a name that is not in the appropriate `available` directory, `apache-config` will treat it as a file, and if that file exists, will copy it into the `available` directory for you, changing the file extension to `.conf` in the process
+
+3. Disable the file with `apache-config disable {type} {name}`
+
+	- Just undoes #2
 
 
 

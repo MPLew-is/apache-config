@@ -49,11 +49,11 @@ The script is written to be as POSIX-compliant as possible, but if you find any 
 	
 		- `enabled`: any currently-enabled files
 		
-		- `available`: any files in the "{type}-available" directory
+		- `available`: any files in the `{type}-available` directory
 		
-		- `disabled`: any files in the "{type}-available" directory that are not enabled
+		- `disabled`: any files in the `{type}-available` directory that are not enabled
 
-- `apache-config enable {type} {name}` symlinks a file from an "available" folder into an "enabled" folder, from where Apache will include it
+- `apache-config enable {type} {name}` symlinks a file from an `available` folder into an `enabled` folder, from where Apache will include it
 
 	- The different types and folder structure are discussed further below
 
@@ -158,7 +158,7 @@ You should never place or edit files directly into the `*-enabled` folders; rath
 
 	- These files must end with `.conf` to be included in Apache's configuration
 
-	- You can also provide the filename to the enable command, and it will copy your files into the "available" directory for you
+	- You can also provide the filename to the enable command, and it will copy your files into the `available` directory for you
 
 2. Enable the file with `apache-config enable {type} {name}`
 

@@ -173,6 +173,8 @@ command_help()
 			
 		EOF
 	fi
+	
+	return 0
 }
 
 
@@ -267,6 +269,9 @@ command_install()
 	
 	#Print Apache restart message
 	printApacheRestart "Installation"
+	
+	
+	return 0
 }
 
 
@@ -279,10 +284,11 @@ validateType()
 	then
 		echo "Unrecognized configuration type '${1}'" 1>&2
 		printUsageMessage 1>&2
-		exit 2
+		return 3
 	fi
 	
 	echo "${configType}"
+	return 0
 }
 
 #Validate that configuration names are provided, or exit if not
@@ -292,9 +298,10 @@ validateNames()
 	then
 		echo "No ${module}/${config}/${site}/${cleanup} names were provided" 1>&2
 		printUsageMessage 1>&2
-		
-		exit 2
+		return 4
 	fi
+	
+	return 0
 }
 
 
@@ -324,13 +331,13 @@ command_enable()
 		if [ ! -f "${availableFile}" ]
 		then
 			echo "File '${availableFile}' does not exist" 1>&2
-			exit 3
+			return 31
 		
 		#Check if the file is already enabled, fail if so
 		elif [ -e "${enabledFile}" ]
 		then
 			echo "File '${enabledFile}' is already enabled (symlinked into the '${configType}-${enabledPath}' directory)" 1>&2
-			exit 4
+			return 32
 		fi
 		
 		
@@ -378,7 +385,7 @@ command_disable()
 		if [ ! -L "${file}" ]
 		then
 			echo "File '${file}' does not exist" 1>&2
-			exit 3
+			return 41
 		fi
 		
 		

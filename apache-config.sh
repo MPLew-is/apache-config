@@ -99,7 +99,7 @@ echoStatus()
 
 
 #Print a help message when requested
-helpCommand()
+command_help()
 {
 	cat <<-EOF
 		apache-config:  allows for script-based management of Apache modules and other configuration files
@@ -177,7 +177,7 @@ helpCommand()
 
 
 #Install the necessary configuration blocks, files, and directories for the script to run
-installCommand()
+command_install()
 {
 	#Set variables for the files being output to
 	httpdFile="${configRoot}/httpd.conf"
@@ -299,7 +299,7 @@ validateNames()
 
 
 #Enable configuration files of the given type and names
-enableCommand()
+command_enable()
 {
 	#Get the configuration type, then shift it off the arguments list to allow for iterating
 	configType="$(validateType "${1}")"
@@ -354,7 +354,7 @@ enableCommand()
 }
 
 
-disableCommand()
+command_disable()
 {
 	#Get the configuration type, then shift it off the arguments list to allow for iterating
 	configType="$(validateType "${1}")"
@@ -404,7 +404,7 @@ disableCommand()
 #Parse requested command, and call the corresponding function with the remaining arguments
 if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ]
 then
-	commandFunction="${1}Command"
+	commandFunction="command_${1}"
 	
 	shift
 	"${commandFunction}" "${@}"

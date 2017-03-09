@@ -52,7 +52,7 @@ The script is written to be as POSIX-compliant as possible, but if you find any 
 
 ### Installation with homebrew (recommended) ###
 
-(`homebrew`)[https://github.com/Homebrew/brew] is the recommended way of installing `apache-config`. This will take care of most of the initial setup, so you can get started more quickly. Simply run the commands below to get started:
+[`homebrew`](https://github.com/Homebrew/brew) is the recommended way of installing `apache-config`. This will take care of most of the initial setup, so you can get started more quickly. Simply run the commands below to get started:
 
 ```shell
 brew tap MPLew-is/experimental

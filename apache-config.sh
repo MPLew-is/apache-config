@@ -82,7 +82,7 @@ printApacheRestart()
 	fi
 }
 
-#Print status messages only if output is not silenced
+#Print status messages (with no trailing line break) only if output is not silenced
 printStatus()
 {
 	if [ "${quiet}" != "true" ]
@@ -91,7 +91,7 @@ printStatus()
 	fi
 }
 
-#Print status messages only if output is not silenced
+#Print status messages (with one trailing line break) only if output is not silenced
 echoStatus()
 {
 	if [ "${quiet}" != "true" ]
@@ -100,6 +100,7 @@ echoStatus()
 	fi
 }
 
+#Print status messages (with two trailing line breaks) only if output is not silenced
 catStatus()
 {
 	if [ "${quiet}" != "true" ]

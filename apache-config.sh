@@ -495,7 +495,7 @@ command_list()
 	
 	directoryPrefix="${configDirectory}/${configType}s"
 	directory="${configDirectory}/${configType}s-${statusPath}"
-	find "${directory}" -name "*.conf" | sed -e "s:^${directory}/::g" -e "s:.${fileSuffix}$::g" | \
+	find "${directory}" -name "*.${fileSuffix}" | sed -e "s:^${directory}/::g" -e "s:.${fileSuffix}$::g" | \
 	{
 		if [ "${status}" = "disabled" ]
 		then

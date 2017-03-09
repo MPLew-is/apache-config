@@ -61,9 +61,10 @@ fi
 printUsageMessage()
 {
 	cat <<-EOF
-		Install:    ${0} [--quiet] install
-		Usage:      ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME} [{NAME}...]
-		Help:       ${0} help [--verbose]
+	    Check installation: ${0} [--quiet] check
+		Install:            ${0} [--quiet] install
+		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME} [{NAME}...]
+		Help:               ${0} help [--verbose]
 		
 	EOF
 }
@@ -133,6 +134,7 @@ command_help()
 		
 		Commands:
 		    "help":     print this help message
+		    "check":    check if the "install" command has been performed
 		    "install":  creates the needed files, directories, and configuration directives needed for this script
 		    "enable":   enables the specified config file type and name
 		    "disable":  disables the specified config file type and name

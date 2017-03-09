@@ -164,8 +164,4 @@ Hi, I'm Mike, an IT administrator and full-stack developer, dealing primarily wi
 
 ## To do/known issues ##
 
-- Handle moving a file to `*-available` if `apache-config enable` is provided with a file name instead of a configuration name
-
 - Add `man` page/other documentation
-
-- Improve non-duplication of blocks in `httpd.conf` when repeating `apache-config install`

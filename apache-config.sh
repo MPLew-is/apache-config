@@ -64,7 +64,7 @@ printUsageMessage()
 		Check installation: ${0} [--quiet] check
 		Install:            ${0} [--quiet] install
 		List configuration: ${0} list (${module} | ${config} | ${site} | ${cleanup}) (enabled | available | disabled)
-		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME} [{NAME}...]
+		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH} [{NAME/PATH}...]
 		Help:               ${0} help [--verbose]
 		
 	EOF
@@ -176,6 +176,9 @@ command_help()
 			Configs should be stored in (or symlinked into) "${config}s-${availablePath}"
 			Sites should be stored in (or symlinked into) "${site}s-${availablePath}"
 			Cleanups should be stored in (or symlinked into) "${cleanup}s-${availablePath}"
+			
+			If you run an "enable" command with a literal filename, that file will be copied into the appropriate "available" directory and then enabled
+			    When you do this, the last file extension will be replaced with ".${fileSuffix}"
 			
 			When a command is run for a specific configuration file, the given name is used to search for the specific file to use by appending ".${fileSuffix}"
 			
@@ -340,19 +343,46 @@ command_enable()
 	#Multiple configuration names can be provided, so shift through each argument and process each
 	while [ "${#}" -gt "0" ]
 	do
-		#Set variables to each of the files
-		fileName="${1}.${fileSuffix}"
-		availableFile="${directoryPrefix}-${availablePath}/${fileName}"
-		enabledFile="${directoryPrefix}-${enabledPath}/${fileName}"
+		#Set initial variables
+		configName="${1}"
+		fileName="${configName}.${fileSuffix}"
+		availableDirectory="${directoryPrefix}-${availablePath}"
+		availableFile="${availableDirectory}/${fileName}"
 		
 		#Check if the file is actually available, fail if not
 		if [ ! -f "${availableFile}" ]
 		then
-			echo "File '${availableFile}' does not exist" 1>&2
-			return 31
+			#If the given input is a file name that exists, copy it into the available directory and enable it from there
+			if [ -f "${configName}" ]
+			then
+				#Get just the file name, and convert any existing file extension to the managed file suffix
+				fileName="$(basename "${1}")"
+				configName="${fileName%.*}"
+				fileName="${configName}.${fileSuffix}"
+				
+				#Copy the file into the appropriate available directory
+				printStatus "Copying file '${1}' into '${configType}s-${availablePath}'... "
+				
+				if cp "${1}" "${availableDirectory}/${fileName}"
+				then
+					echoStatus "done"
+					
+				else
+					echoStatus "ERROR"
+					return 33
+				fi
+			
+			else
+				echo "File '${availableFile}' does not exist" 1>&2
+				return 31
+			fi
+		fi
+		
+		#Get the path in which to store the symlink
+		enabledFile="${directoryPrefix}-${enabledPath}/${fileName}"
 		
 		#Check if the file is already enabled, fail if so
-		elif [ -e "${enabledFile}" ]
+		if [ -e "${enabledFile}" ]
 		then
 			echo "File '${enabledFile}' is already enabled (symlinked into the '${configType}-${enabledPath}' directory)" 1>&2
 			return 32
@@ -360,7 +390,7 @@ command_enable()
 		
 		
 		#Symlink the config file from the available directory into the enabled directory
-		printStatus "Enabling ${configType} '${1}'... "
+		printStatus "Enabling ${configType} '${configName}'... "
 		
 		if ln -s "../${configType}s-${availablePath}/${fileName}" "${enabledFile}"
 		then

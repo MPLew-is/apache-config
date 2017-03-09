@@ -125,7 +125,7 @@ command_help()
 	
 	cat <<-EOF
 		All paths listed below are relative to the following path:
-		    ${configRoot}/${configDirectory}
+		    ${configDirectory}
 		
 		Example usage:
 		    ${0} enable ${module} rewrite

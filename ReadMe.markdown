@@ -187,9 +187,3 @@ You can edit the script however works best for you. I've tried my best to put ev
 ## Who? ##
 
 Hi, I'm Mike, an IT administrator and full-stack developer, dealing primarily with LAMP-based stacks. I'm currently remotely managing a small group of development workstations whose primary users are unfamiliar with the internals of Apache and Unix/Linux scripting. Trying to manage the configuration files manually was getting to be too much of a hassle, so I decided I had enough, and here we are.
-
-
-
-## To do/known issues ##
-
-- Add `man` page/other documentation

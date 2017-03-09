@@ -484,8 +484,8 @@ command_check()
 	#Fail if either of the check functions fail
 	if checkEnvironmentVariable && checkControllerBlock
 	then
-		echoStatus "apache-config not installed" 1>&2
-		catStatus "Please run '${0} install' to install apache-config" 1>&2
+		echoStatus "apache-config not installed"
+		catStatus "Please run '${0} install' to install apache-config"
 		return 51
 	fi
 	

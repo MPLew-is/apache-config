@@ -61,7 +61,7 @@ fi
 printUsageMessage()
 {
 	cat <<-EOF
-	    Check installation: ${0} [--quiet] check
+		Check installation: ${0} [--quiet] check
 		Install:            ${0} [--quiet] install
 		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME} [{NAME}...]
 		Help:               ${0} help [--verbose]

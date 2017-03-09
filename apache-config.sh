@@ -33,6 +33,7 @@ fi
 version="0_1"
 environmentVariable="VENDOR_MPLEWIS_CONFIG_CONTROLLER"
 
+httpdFile="${configRoot}/httpd.conf"
 configPath="other"
 configDirectory="${configRoot}/${configPath}"
 fileSuffix="conf"
@@ -94,6 +95,17 @@ echoStatus()
 	if [ "${quiet}" != "true" ]
 	then
 		echo "${1}"
+	fi
+}
+
+catStatus()
+{
+	if [ "${quiet}" != "true" ]
+	then
+		cat <<-EOF
+			${1}
+		
+		EOF
 	fi
 }
 
@@ -181,8 +193,7 @@ command_help()
 #Install the necessary configuration blocks, files, and directories for the script to run
 command_install()
 {
-	#Set variables for the files being output to
-	httpdFile="${configRoot}/httpd.conf"
+	#Set variable for the file being output to
 	controllerFile="${configDirectory}/${controllerFileName}"
 	
 	
@@ -198,7 +209,7 @@ command_install()
 	printStatus "Adding/updating version environment variable in '${httpdFile}'... "
 	defineDirective="Define ${environmentVariable}"
 	
-	if ! grep "${defineDirective}" "${httpdFile}" 1>/dev/null 2>&1
+	if ! checkEnvironmentVariable
 	then
 		cat <<-EOF >> "${httpdFile}"
 			
@@ -220,7 +231,7 @@ command_install()
 	#There doesn't seem to be a better way to do this on a default config file, so an environment variable was added to prevent multiple blocks from executing simultaneously
 	printStatus "Adding include statement to '${httpdFile}'... "
 	
-	if ! grep "reqenv('${environmentVariable}_${version}') == 'true'" "${httpdFile}" 1>/dev/null 2>&1
+	if ! checkControllerBlock
 	then
 		cat <<-EOF >> "${httpdFile}"
 			
@@ -308,6 +319,9 @@ validateNames()
 #Enable configuration files of the given type and names
 command_enable()
 {
+	#Check installation before performing enable command
+	command_check 1>/dev/null
+	
 	#Get the configuration type, then shift it off the arguments list to allow for iterating
 	configType="$(validateType "${1}")"
 	shift
@@ -363,6 +377,9 @@ command_enable()
 
 command_disable()
 {
+	#Check installation before performing disable command
+	command_check 1>/dev/null
+	
 	#Get the configuration type, then shift it off the arguments list to allow for iterating
 	configType="$(validateType "${1}")"
 	shift
@@ -408,8 +425,43 @@ command_disable()
 }
 
 
+#Check for the presence of the environment variable definition in httpd.conf
+checkEnvironmentVariable()
+{
+	if ! grep --quiet "reqenv('${environmentVariable}_${version}') == 'true'" "${httpdFile}"
+	then
+		return 5
+	fi
+}
+
+#Check for the presence of the controller block in httpd.conf
+checkControllerBlock()
+{
+	if ! grep --quiet "reqenv('${environmentVariable}_${version}') == 'true'" "${httpdFile}"
+	then
+		return 6
+	fi
+}
+
+
+#Check if the "install" command has been run for this version, failing if not
+command_check()
+{
+	#Fail if either of the check functions fail
+	if checkEnvironmentVariable && checkControllerBlock
+	then
+		echoStatus "apache-config not installed" 2>&1
+		catStatus "Please run '${0} install' to install apache-config" 2>&1
+		return 51
+	fi
+	
+	catStatus "apache-config is installed"
+	return 0
+}
+
+
 #Parse requested command, and call the corresponding function with the remaining arguments
-if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ]
+if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ] || [ "${1}" = "check" ]
 then
 	commandFunction="command_${1}"
 	

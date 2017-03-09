@@ -46,17 +46,23 @@ site="site"
 cleanup="cleanup"
 
 
-#Initialize a variable for the loudness of the script
+#Get requested loudness of script
 quiet=false
 
+if [ "${1}" = "--quiet" ]
+then
+	quiet=true
+	shift
+fi
 
-#Store a function for the usage message for easy use later
+
+#Print a message showing the usage options
 printUsageMessage()
 {
 	cat <<-EOF
 		Install:    ${0} [--quiet] install
 		Usage:      ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME} [{NAME}...]
-		Help:       ${0} --help [--verbose]
+		Help:       ${0} help [--verbose]
 		
 	EOF
 }
@@ -92,217 +98,182 @@ echoStatus()
 }
 
 
-#If there are 1 or 2 arguments, this is either a help call or an install call (or an error)
-if [ "${#}" -gt 0 ] && [ "${#}" -le 2 ]
-then
-	#Print help message to stdout and exit if the help flag is present
-	if [ "${1}" = "--help" ]
+#Print a help message when requested
+helpCommand()
+{
+	cat <<-EOF
+		apache-config:  allows for script-based management of Apache modules and other configuration files
+		                inspired by "a2enmod" and co. on Debian distributions
+		
+	EOF
+	
+	printUsageMessage
+	
+	cat <<-EOF
+		All paths listed below are relative to the following path:
+		    ${configRoot}/${configDirectory}
+		
+		Example usage:
+		    ${0} enable ${module} rewrite
+		
+		Arguments:
+		    "--quiet":  silence all messages about the script's status
+		
+		Commands:
+		    "help":     print this help message
+		    "install":  creates the needed files, directories, and configuration directives needed for this script
+		    "enable":   enables the specified config file type and name
+		    "disable":  disables the specified config file type and name
+		    
+		Supported types:
+		    "${module}":    files for loading and configuring an Apache module
+		                        stored in the "${module}s-${availablePath}" directory
+		    "${config}":    generic Apache configuration files
+		                        stored in the "${config}s-${availablePath}" directory
+		    "${site}":      files for configuring a specific host or site
+		                        stored in the "${site}s-${availablePath}" directory
+		    "${cleanup}":   files for cleaning up after all other files have been included
+		                        stored in the "${cleanup}s-${availablePath}" directory
+		
+	EOF
+	
+	if [ "${#}" = "0" ]
 	then
 		cat <<-EOF
-			apache-config:  allows for script-based management of Apache modules and other configuration files
-			                inspired by "a2enmod" and co. on Debian distributions
-			
-		EOF
-		
-		printUsageMessage
-		
-		cat <<-EOF
-			All paths listed below are relative to the following path:
-			    ${configRoot}/${configDirectory}
-			
-			Example usage:
-			    ${0} enable ${module} rewrite
-			
-			Arguments:
-			    "--quiet":  silence all messages about the script's status
-			
-			Commands:
-			    "install":  creates the needed files, directories, and configuration directives needed for this script
-			    "enable":   enables the specified config file type and name
-			    "disable":  disables the specified config file type and name
-			    
-			Supported types:
-			    "${module}":    files for loading and configuring an Apache module
-			                        stored in the "${module}s-${availablePath}" directory
-			    "${config}":    generic Apache configuration files
-			                        stored in the "${config}s-${availablePath}" directory
-			    "${site}":      files for configuring a specific host or site
-			                        stored in the "${site}s-${availablePath}" directory
-			    "${cleanup}":   files for cleaning up after all other files have been included
-			                        stored in the "${cleanup}s-${availablePath}" directory
-			
-		EOF
-		
-		
-		#Print additional help messages when requested
-		if [ "${#}" = "2" ] && [ "${2}" = "--verbose" ]
-		then
-			cat <<-EOF
-				
-				The various types of configuration files will be loaded in the following order:
-				    ${module}s, ${config}s, ${site}s
-				
-				"${module}s" are intended to be Apache module loading and configuration directives, if the defaults must be changed
-				"${config}s" are intended to be server-wide directives that should be set before any hosts or sites are loaded
-				"${site}s" are intended to be configuration for hosts, virtual or otherwise
-				"${cleanup}s" are intended to cleaning up after all other files have been included (such as unsetting macro definitions)
-				
-				Modules should be stored in (or symlinked into) "${module}s-${availablePath}"
-				Configs should be stored in (or symlinked into) "${config}s-${availablePath}"
-				Sites should be stored in (or symlinked into) "${site}s-${availablePath}"
-				Cleanups should be stored in (or symlinked into) "${cleanup}s-${availablePath}"
-				
-				When a command is run for a specific configuration file, the given name is used to search for the specific file to use by appending ".${fileSuffix}"
-				
-				All enabled configuration will be symlinked into the corresponding "${enabledPath}" directory; for example, when running:
-				    ${0} enable ${module} rewrite
-				the file "${module}s-${availablePath}/rewrite.conf" will be symlinked into "${module}s-${enabledPath}/rewrite.conf"
-				
-				When disabling a configuration file, the link in "${enabledPath}" will be removed, but the original file will remain in the "${availablePath}" directory
-				
-				You should never modify the "*-${enabledPath}" directories directly, as anything in that directory can be deleted at any time
-				
-			EOF
-		
-		#Only display message indicating more help is available when not called for
-		else
-			cat <<-EOF
 				Run "${0} --help --verbose" for more detailed information.
 				
-			EOF
-		fi
-		
-		exit 0
-	
-	#Process the installation if requested
-	elif [ "${1}" = "install" ] || [ "${2}" = "install" ]
-	then
-		if [ "${#}" = "2" ] && [ "${1}" = "--quiet" ]
-		then
-			quiet=true
-		fi
-		
-		#Set variables for the files being output to
-		httpdFile="${configRoot}/httpd.conf"
-		controllerFile="${configDirectory}/${controllerFileName}"
-		
-		
-		#Create the config directory if it doesn't exist
-		printStatus "Creating directory '${configDirectory}'... "
-		mkdir -p "${configDirectory}"
-		
-		echoStatus "done"
-		
-		
-		#Add a version environment variable to prevent multiple versions from conflicting
-		#This directive will be replaced every time an installation is performed
-		printStatus "Adding/updating version environment variable in '${httpdFile}'... "
-		defineDirective="Define ${environmentVariable}"
-		
-		if ! grep "${defineDirective}" "${httpdFile}" 1>/dev/null 2>&1
-		then
-			cat <<-EOF >> "${httpdFile}"
-				
-				
-				# Do **NOT** delete this line; it is managed by apache-config and will be updated along with the script
-				${defineDirective}_${version} 'true'
-				
-			EOF
-			
-			echoStatus "added"
-		
-		else
-			sed -i '' -e "s/${defineDirective}_[0-9]*_[0-9]*/${defineDirective}_${version}/" "${httpdFile}"
-			echoStatus "updated"
-		fi
-		
-		
-		#Add directive that includes the controller conf file to the main httpd.conf
-		#There doesn't seem to be a better way to do this on a default config file, so an environment variable was added to prevent multiple blocks from executing simultaneously
-		printStatus "Adding include statement to '${httpdFile}'... "
-		
-		if ! grep "reqenv('${environmentVariable}_${version}') == 'true'" "${httpdFile}" 1>/dev/null 2>&1
-		then
-			cat <<-EOF >> "${httpdFile}"
-				
-				<IfDefine ${environmentVariable}_${version}>
-				    <IfDefine !${environmentVariable}>
-				        Define ${environmentVariable} '${version}'
-				        Include ${controllerFile}
-				    </IfDefine>
-				</IfDefine>
-				
-			EOF
-			
-			echoStatus "done"
-		
-		else
-			echoStatus "already present"
-		fi
-		
-		
-		#Echo a top comment to the controller conf file warning users against editing this file
-		echo "# Do **NOT** modify this file. It is managed by apache-config, and may be overwritten at any point" > "${controllerFile}"
-		
-		
-		#Iterate through the config types, create the necessary directories, and include those directories in the controller file
-		printStatus "Creating and installing configuration directories (if not already present)... "
-		
-		cat <<-EOF |
-			${module}
-			${config}
-			${site}
-			${cleanup}
 		EOF
-		{
-			while read -r configType
-			do
-				configTypeDirectory="${configDirectory}/${configType}s"
-				mkdir -p "${configTypeDirectory}-${availablePath}"
-				mkdir -p "${configTypeDirectory}-${enabledPath}"
-				
-				echo "IncludeOptional ${configTypeDirectory}-${enabledPath}/*.${fileSuffix}" >> "${controllerFile}"
-			done
-		}
+	
+	elif [ "${#}" = "1" ] && [ "${1}" = "--verbose" ]
+	then
+		cat <<-EOF
+			
+			The various types of configuration files will be loaded in the following order:
+			    ${module}s, ${config}s, ${site}s
+			
+			"${module}s" are intended to be Apache module loading and configuration directives, if the defaults must be changed
+			"${config}s" are intended to be server-wide directives that should be set before any hosts or sites are loaded
+			"${site}s" are intended to be configuration for hosts, virtual or otherwise
+			"${cleanup}s" are intended to cleaning up after all other files have been included (such as unsetting macro definitions)
+			
+			Modules should be stored in (or symlinked into) "${module}s-${availablePath}"
+			Configs should be stored in (or symlinked into) "${config}s-${availablePath}"
+			Sites should be stored in (or symlinked into) "${site}s-${availablePath}"
+			Cleanups should be stored in (or symlinked into) "${cleanup}s-${availablePath}"
+			
+			When a command is run for a specific configuration file, the given name is used to search for the specific file to use by appending ".${fileSuffix}"
+			
+			All enabled configuration will be symlinked into the corresponding "${enabledPath}" directory; for example, when running:
+			    ${0} enable ${module} rewrite
+			the file "${module}s-${availablePath}/rewrite.conf" will be symlinked into "${module}s-${enabledPath}/rewrite.conf"
+			
+			When disabling a configuration file, the link in "${enabledPath}" will be removed, but the original file will remain in the "${availablePath}" directory
+			
+			You should never modify the "*-${enabledPath}" directories directly, as anything in that directory can be deleted at any time
+			
+		EOF
+	fi
+}
+
+
+#Install the necessary configuration blocks, files, and directories for the script to run
+installCommand()
+{
+	#Set variables for the files being output to
+	httpdFile="${configRoot}/httpd.conf"
+	controllerFile="${configDirectory}/${controllerFileName}"
+	
+	
+	#Create the config directory if it doesn't exist
+	printStatus "Creating directory '${configDirectory}'... "
+	mkdir -p "${configDirectory}"
+	
+	echoStatus "done"
+	
+	
+	#Add a version environment variable to prevent multiple versions from conflicting
+	#This directive will be replaced every time an installation is performed
+	printStatus "Adding/updating version environment variable in '${httpdFile}'... "
+	defineDirective="Define ${environmentVariable}"
+	
+	if ! grep "${defineDirective}" "${httpdFile}" 1>/dev/null 2>&1
+	then
+		cat <<-EOF >> "${httpdFile}"
+			
+			
+			# Do **NOT** delete this line; it is managed by apache-config and will be updated along with the script
+			${defineDirective}_${version} 'true'
+			
+		EOF
+		
+		echoStatus "added"
+	
+	else
+		sed -i '' -e "s/${defineDirective}_[0-9]*_[0-9]*/${defineDirective}_${version}/" "${httpdFile}"
+		echoStatus "updated"
+	fi
+	
+	
+	#Add directive that includes the controller conf file to the main httpd.conf
+	#There doesn't seem to be a better way to do this on a default config file, so an environment variable was added to prevent multiple blocks from executing simultaneously
+	printStatus "Adding include statement to '${httpdFile}'... "
+	
+	if ! grep "reqenv('${environmentVariable}_${version}') == 'true'" "${httpdFile}" 1>/dev/null 2>&1
+	then
+		cat <<-EOF >> "${httpdFile}"
+			
+			<IfDefine ${environmentVariable}_${version}>
+			    <IfDefine !${environmentVariable}>
+			        Define ${environmentVariable} '${version}'
+			        Include ${controllerFile}
+			    </IfDefine>
+			</IfDefine>
+			
+		EOF
 		
 		echoStatus "done"
-		
-		
-		#Print Apache restart message
-		printApacheRestart "Installation"
-		
-		
-		exit 0
 	
-	#Otherwise, the call is an error, so print a usage message and quit
 	else
-		printUsageMessage 1>&2
-		exit 2
+		echoStatus "already present"
 	fi
+	
+	
+	#Echo a top comment to the controller conf file warning users against editing this file
+	echo "# Do **NOT** modify this file. It is managed by apache-config, and may be overwritten at any point" > "${controllerFile}"
+	
+	
+	#Iterate through the config types, create the necessary directories, and include those directories in the controller file
+	printStatus "Creating and installing configuration directories (if not already present)... "
+	
+	cat <<-EOF |
+		${module}
+		${config}
+		${site}
+		${cleanup}
+	EOF
+	{
+		while read -r configType
+		do
+			configTypeDirectory="${configDirectory}/${configType}s"
+			mkdir -p "${configTypeDirectory}-${availablePath}"
+			mkdir -p "${configTypeDirectory}-${enabledPath}"
+			
+			echo "IncludeOptional ${configTypeDirectory}-${enabledPath}/*.${fileSuffix}" >> "${controllerFile}"
+		done
+	}
+	
+	echoStatus "done"
+	
+	
+	#Print Apache restart message
+	printApacheRestart "Installation"
+}
 
-#Otherwise, the number of arguments is at least correct for a normal call, so start processing
-else
-	#Quiet the script if requested
-	if [ "${1}" = "--quiet" ]
-	then
-		quiet=true
-		shift
-	fi
-	
-	
-	#Validate the command given, either "enable" or "disable"
-	method="${1}"
-	if [ "${1}" != "enable" ] && [ "${1}" != "disable" ]
-	then
-		echo "Unrecognized command '${1}'" 1>&2
-		printUsageMessage 1>&2
-		exit 2
-	fi
-	
-	shift
-	
-	
-	#Validate the config type, one of the predefined types
+
+#Validate the input enable/disable type, exiting on failure
+validateType()
+{
+	#Validate the config type against the prefedined types
 	configType="${1}"
 	if [ "${1}" != "${module}" ] && [ "${1}" != "${config}" ] && [ "${1}" != "${site}" ] && [ "${1}" != "${cleanup}" ]
 	then
@@ -311,10 +282,12 @@ else
 		exit 2
 	fi
 	
-	shift
-	
-	
-	#If, after shifting the variables, no names remain, fail in error
+	echo "${configType}"
+}
+
+#Validate that configuration names are provided, or exit if not
+validateNames()
+{
 	if [ "${#}" -lt "1" ]
 	then
 		echo "No ${module}/${config}/${site}/${cleanup} names were provided" 1>&2
@@ -322,17 +295,24 @@ else
 		
 		exit 2
 	fi
-fi
+}
 
 
-#Set variable for the prefix to the available/enabled directories
-directoryPrefix="${configDirectory}/${configType}s"
-
-
-#If an enable was requested, link the files from the available directory into the enabled directory
-if [ "${method}" = "enable" ]
-then
-	#Multiple config names can be provided, so shift through each argument and process each
+#Enable configuration files of the given type and names
+enableCommand()
+{
+	#Get the configuration type, then shift it off the arguments list to allow for iterating
+	configType="$(validateType "${1}")"
+	shift
+	
+	#Validate that at least one configuration name was given
+	validateNames "${@}"
+	
+	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
+	directoryPrefix="${configDirectory}/${configType}s"
+	
+	
+	#Multiple configuration names can be provided, so shift through each argument and process each
 	while [ "${#}" -gt "0" ]
 	do
 		#Set variables to each of the files
@@ -371,11 +351,22 @@ then
 	
 	#Print Apache restart message
 	printApacheRestart "Enabling"
-	
+}
 
-#If an enable was requested, unlink the files from the enabled directory
-elif [ "${method}" = "disable" ]
-then
+
+disableCommand()
+{
+	#Get the configuration type, then shift it off the arguments list to allow for iterating
+	configType="$(validateType "${1}")"
+	shift
+	
+	#Validate that at least one configuration name was given
+	validateNames "${@}"
+	
+	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
+	directoryPrefix="${configDirectory}/${configType}s"
+	
+	
 	#Multiple config names can be provided, so shift through each argument and process each
 	while [ "${#}" -gt "0" ]
 	do
@@ -407,12 +398,22 @@ then
 	
 	#Print Apache restart message
 	printApacheRestart "Disabling"
-	
+}
 
-#Provide a final catch block to prevent silent failure
+
+#Parse requested command, and call the corresponding function with the remaining arguments
+if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ]
+then
+	commandFunction="${1}Command"
+	
+	shift
+	"${commandFunction}" "${@}"
+
+#Otherwise, fail with error
 else
-	echo "Uhh, this is embarassing. There shouldn't be a way for this message to trigger, but somehow you've gotten here anyway. Please report this as an issue on GitHub so it can be fixed!" 1>&2
-	exit 4
+	echo "Unrecognized command '${1}'" 1>&2
+	printUsageMessage 1>&2
+	exit 2
 fi
 
 

@@ -10,17 +10,17 @@ set -e
 
 
 projectHost="github.com"
-projectUser="MPLew-is"
-projectRepository="apache-config"
+projectUser="${CIRCLE_PROJECT_USERNAME}"
+projectRepository="${CIRCLE_PROJECT_REPONAME}"
 
 tapHost="${projectHost}"
 tapUser="${projectUser}"
-tapRepository="homebrew-experimental"
-tapFormula="apache-config"
+tapRepository="${TAP_REPOSITORY}"
+tapFormula="${projectRepository}"
 
 
 #Get current tagged release
-tag="$(git describe --tags)"
+tag="${CIRCLE_TAG}"
 
 
 #Change into the home directory
@@ -47,8 +47,16 @@ fi
 
 #Change directories into the tap, then initialize git settings and make sure it's up-to-date
 cd "brew-tap/Formula"
-git config user.name "homebrew-experimental (CircleCI)"
-git config user.email "mike@mplew.is"
+
+#Get the variable names for who triggered the build, then get their name and email address
+username="$(echo "${CIRCLE_USERNAME}" | sed 's/-/_/g')"
+nameVariable="GIT_NAME_${username}"
+emailVariable="GIT_EMAIL_${username}"
+eval "gitName=\$$nameVariable"
+eval "gitEmail=\$$emailVariable"
+
+git config user.name "${gitName}"
+git config user.email "${gitEmail}"
 
 git fetch
 git pull

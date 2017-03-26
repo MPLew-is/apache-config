@@ -74,13 +74,7 @@ printUsageMessage()
 #Print a message saying Apache needs to be restarted
 printApacheRestart()
 {
-	if [ "${quiet}" != "true" ]
-	then
-		cat <<-EOF
-		${1} complete. You will need to restart Apache for the changes to take effect.
-		
-		EOF
-	fi
+	echoStatus "${1} complete. You will need to restart Apache for the changes to take effect."
 }
 
 #Print status messages (with no trailing line break) only if output is not silenced

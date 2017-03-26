@@ -65,6 +65,7 @@ printUsageMessage()
 		Install:            ${0} [--quiet] install
 		List configuration: ${0} list (${module} | ${config} | ${site} | ${cleanup}) (enabled | available | disabled)
 		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH} [{NAME/PATH}...]
+		Edit:               ${0} [--quiet] edit (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH}
 		Help:               ${0} help [--verbose]
 		
 	EOF
@@ -141,6 +142,7 @@ command_help()
 		    "list":     lists all configuration files of the given type and status (enabled, available, or disabled)
 		    "enable":   enables the specified config file type and name
 		    "disable":  disables the specified config file type and name
+		    "edit":     use the editor specified in VISUAL or EDITOR (falling back to vim or vi if not set) to edit the specified config type and name
 		    
 		Supported types:
 		    "${module}":    files for loading and configuring an Apache module
@@ -544,9 +546,30 @@ command_list()
 	}
 }
 
+command_edit()
+{
+	#Get the configuration type, then shift it off the arguments
+	configType="$(validateType "${1}")"
+	name="${2}"
+	
+	#Get the user's preferred editor from environment variables, ultimately falling back to vim if nothing is defined
+	editor="${VISUAL:-${EDITOR:-vim}}"
+	
+	#If the editor fell back to vim, and vim isn't present in PATH, fall back to vi, which is guaranteed to be present by POSIX
+	if [ "${editor}" = "vim" ] && ! which vim 1>/dev/null
+	then
+		editor="vi"
+	fi
+	
+	#Use the editor to edit the config file of the input type and name
+	"${editor}" "${configDirectory}/${configType}s-${availablePath}/${name}.${fileSuffix}"
+	
+	printApacheRestart "Editing"
+}
+
 
 #Parse requested command, and call the corresponding function with the remaining arguments
-if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ] || [ "${1}" = "check" ] || [ "${1}" = "list" ]
+if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ] || [ "${1}" = "check" ] || [ "${1}" = "list" ] || [ "${1}" = "edit" ]
 then
 	commandFunction="command_${1}"
 	

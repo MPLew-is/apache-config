@@ -101,18 +101,6 @@ echoStatus()
 	fi
 }
 
-#Print status messages (with two trailing line breaks) only if output is not silenced
-catStatus()
-{
-	if [ "${quiet}" != "true" ]
-	then
-		cat <<-EOF
-			${1}
-		
-		EOF
-	fi
-}
-
 
 #Print a help message when requested
 command_help()
@@ -488,11 +476,11 @@ command_check()
 	if checkEnvironmentVariable && checkControllerBlock
 	then
 		echoStatus "apache-config not installed"
-		catStatus "Please run '${0} install' to install apache-config"
+		echoStatus "Please run '${0} install' to install apache-config"
 		return 51
 	fi
 	
-	catStatus "apache-config is installed"
+	echoStatus "apache-config is installed"
 	return 0
 }
 
@@ -515,7 +503,7 @@ command_list()
 	#Validate input status, failing if an incorrect status is given
 	if [ "${status}" != "enabled" ] && [ "${status}" != "available" ] && [ "${status}" != "disabled" ]
 	then
-		catStatus "Unknown status '${status}'" 1>&2
+		echoStatus "Unknown status '${status}'" 1>&2
 		return 61
 	fi
 	

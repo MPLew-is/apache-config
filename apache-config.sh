@@ -66,8 +66,9 @@ printUsageMessage()
 	cat <<-EOF
 		Check installation: ${0} [--quiet] check
 		Install:            ${0} [--quiet] install
-		List configuration: ${0} list (${module} | ${config} | ${site} | ${cleanup}) (enabled | available | disabled)
+		List:               ${0} list (${module} | ${config} | ${site} | ${cleanup}) (enabled | available | disabled)
 		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH} [{NAME/PATH}...]
+		Add:                ${0} [--quiet] edit (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH}
 		Edit:               ${0} [--quiet] edit (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH}
 		Help:               ${0} help [--verbose]
 		
@@ -127,6 +128,7 @@ command_help()
 		    "list":     lists all configuration files of the given type and status (enabled, available, or disabled)
 		    "enable":   enables the specified config file type and name
 		    "disable":  disables the specified config file type and name
+		    "add":      creates a new config file for specified type and name, the content can either be piped or pasted in after running the command. Press CTRL+D to finish/save.
 		    "edit":     use the editor specified in VISUAL or EDITOR (falling back to vim or vi if not set) to edit the specified config type and name
 		    
 		Supported types:

@@ -68,6 +68,7 @@ printUsageMessage()
 		Install:            ${0} [--quiet] install
 		List:               ${0} list (${module} | ${config} | ${site} | ${cleanup}) (enabled | available | disabled)
 		Enable/disable:     ${0} [--quiet] (enable | disable) (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH} [{NAME/PATH}...]
+		Remove:             ${0} {NAME/PATH}
 		Add:                ${0} [--quiet] edit (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH}
 		Edit:               ${0} [--quiet] edit (${module} | ${config} | ${site} | ${cleanup}) {NAME/PATH}
 		Help:               ${0} help [--verbose]
@@ -126,8 +127,9 @@ command_help()
 		    "check":    check if the "install" command has been performed
 		    "install":  creates the needed files, directories, and configuration directives needed for this script
 		    "list":     lists all configuration files of the given type and status (enabled, available, or disabled)
-		    "enable":   enables the specified config file type and name
-		    "disable":  disables the specified config file type and name
+		    "enable":   enables the specified config file
+		    "disable":  disables the specified config file
+		    "remove":   removes the specified config file
 		    "add":      creates a new config file for specified type and name, the content can either be piped or pasted in after running the command. Press CTRL+D to finish/save.
 		    "edit":     use the editor specified in VISUAL or EDITOR (falling back to vim or vi if not set) to edit the specified config type and name
 		    
@@ -607,7 +609,7 @@ command_edit() {
 
 #Parse requested command, and call the corresponding function with the remaining arguments
 case $1 in
-help|install|enable|disable|check|list|add|edit)
+help|install|enable|disable|remove|check|list|add|edit)
 	commandFunction="command_${1}"
 	shift
 	"${commandFunction}" "${@}"

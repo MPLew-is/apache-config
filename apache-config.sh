@@ -583,20 +583,21 @@ command_edit()
 }
 
 
+
+
 #Parse requested command, and call the corresponding function with the remaining arguments
-if [ "${1}" = "help" ] || [ "${1}" = "install" ] || [ "${1}" = "enable" ] || [ "${1}" = "disable" ] || [ "${1}" = "check" ] || [ "${1}" = "list" ] || [ "${1}" = "edit" ]
-then
+case $1 in
+help|install|enable|disable|check|list|add|edit)
 	commandFunction="command_${1}"
-	
 	shift
 	"${commandFunction}" "${@}"
-
-#Otherwise, fail with error
-else
+;;
+*) #Otherwise, fail with error
 	echo "Unrecognized command '${1}'" 1>&2
 	printUsageMessage 1>&2
 	exit 2
-fi
+;;
+esac
 
 
 exit 0

@@ -12,13 +12,17 @@
 set -e
 
 #Check for existence of Apache in the current PATH
-if which httpd 1>/dev/null 2>&1
-then
-	#If present, parse the config options to get the path to the config directory
-	configRoot="$(httpd -V | grep "SERVER_CONFIG_FILE" | awk '{print $2}' | sed -e 's#^SERVER_CONFIG_FILE="##' -e 's#/httpd.conf"$##')"
+if which httpd 1>/dev/null 2>&1; then
+	# If present, parse the config options to get the path to the config directory
+	httpdV="$(httpd -V)"
 
+	httpdRoot="$(grep "HTTPD_ROOT" <<< "$httpdV" | sed -nr 's@^.+\s*=\s*"(.*)"$@\1@p')"
+	httpdFile="$(grep "SERVER_CONFIG_FILE" <<< "$httpdV" | sed -nr 's@^.+\s*=\s*"(.*)"$@\1@p')" #$httpdConf
+	configRoot="$(sed -e 's@/httpd.conf$@@'  <<< "$httpdFile")" #confRoot
+	httpdConfPath="$httpdRoot/$configRoot"
+	cd "$httpdConfPath"
 else
-	#If not present, show an error message and exit with failure
+	# If not present, show an error message and exit with failure
 	cat 1>&2 <<-EOF
 		This script requires Apache ('httpd') to be present in the current PATH
 		Please install Apache, or link it so it can be found in PATH
@@ -30,13 +34,12 @@ fi
 
 
 #Set a bunch of variables to keep from repeating values, for easy changing if needed
-version="0_1"
+version="0_1_1"
 environmentVariable="VENDOR_MPLEWIS_CONFIG_CONTROLLER"
 
-httpdFile="${configRoot}/httpd.conf"
-configPath="other"
-configDirectory="${configRoot}/${configPath}"
-fileSuffix="conf"
+configDir="apache-config" #the apache-config dir inside of the apache config dir
+configPath="${configRoot}/${configDir}" #absolute path to the apache-config dir
+fileSuffix="conf" #file extension for config files
 controllerFileName="config-controller.${fileSuffix}"
 availablePath="available"
 enabledPath="enabled"
@@ -109,7 +112,7 @@ command_help()
 	
 	cat <<-EOF
 		All paths listed below are relative to the following path:
-		    ${configDirectory}
+		    ${configPath}
 		
 		Example usage:
 		    ${0} enable ${module} rewrite
@@ -186,12 +189,12 @@ command_help()
 command_install()
 {
 	#Set variable for the file being output to
-	controllerFile="${configDirectory}/${controllerFileName}"
+	controllerFile="${configPath}/${controllerFileName}"
 	
 	
 	#Create the config directory if it doesn't exist
-	printStatus "Creating directory '${configDirectory}'... "
-	mkdir -p "${configDirectory}"
+	printStatus "Creating directory '${configPath}'... "
+	mkdir -p "${configPath}"
 	
 	echoStatus "done"
 	
@@ -206,7 +209,7 @@ command_install()
 		cat <<-EOF >> "${httpdFile}"
 			
 			
-			# Do **NOT** delete this line; it is managed by apache-config and will be updated along with the script
+			# Do **NOT** modify this line; it is managed by apache-config and will be updated along with the script
 			${defineDirective}_${version} 'true'
 			
 		EOF
@@ -259,7 +262,7 @@ command_install()
 	{
 		while read -r configType
 		do
-			configTypeDirectory="${configDirectory}/${configType}s"
+			configTypeDirectory="${configPath}/${configType}s"
 			mkdir -p "${configTypeDirectory}-${availablePath}"
 			mkdir -p "${configTypeDirectory}-${enabledPath}"
 			
@@ -322,7 +325,7 @@ command_enable()
 	validateNames "${@}"
 	
 	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
-	directoryPrefix="${configDirectory}/${configType}s"
+	directoryPrefix="${configPath}/${configType}s"
 	
 	
 	#Multiple configuration names can be provided, so shift through each argument and process each
@@ -377,7 +380,7 @@ command_enable()
 		#Symlink the config file from the available directory into the enabled directory
 		printStatus "Enabling ${configType} '${configName}'... "
 		
-		if ln -s "../${configType}s-${availablePath}/${fileName}" "${enabledFile}"
+		if ln -sf "../${configType}s-${availablePath}/${fileName}" "${enabledFile}"
 		then
 			echoStatus "done"
 		
@@ -394,7 +397,7 @@ command_enable()
 }
 
 
-command_disable()
+command_disable() 
 {
 	#Check installation before performing disable command
 	command_check 1>/dev/null
@@ -407,7 +410,7 @@ command_disable()
 	validateNames "${@}"
 	
 	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
-	directoryPrefix="${configDirectory}/${configType}s"
+	directoryPrefix="${configPath}/${configType}s"
 	
 	
 	#Multiple config names can be provided, so shift through each argument and process each
@@ -508,8 +511,8 @@ command_list()
 		statusPath="available"
 	fi
 	
-	directoryPrefix="${configDirectory}/${configType}s"
-	directory="${configDirectory}/${configType}s-${statusPath}"
+	directoryPrefix="${configPath}/${configType}s"
+	directory="${configPath}/${configType}s-${statusPath}"
 	find "${directory}" -name "*.${fileSuffix}" | sed -e "s:^${directory}/::g" -e "s:.${fileSuffix}$::g" | \
 	{
 		if [ "${status}" = "disabled" ]
@@ -528,6 +531,36 @@ command_list()
 	}
 }
 
+validateConfig() {
+	httpd -t -f /etc/httpd/conf/httpd.conf "$1" || command_edit
+}
+
+command_add() 
+{
+	#Get the configuration type, then shift it off the arguments
+	configType="$(validateType "${1}")"
+	name="${2}"
+	
+	newConf=${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}
+
+	if [ -f "$newConf" ]; then
+		#file exists -- SHOULD ask if we want to overwrite and/or open editor, but we'll just suggest to edit instead
+		echo -e "The configuration file already exists. Please use the edit option instead."
+		exit 1
+	fi
+
+	echo -e "Pipe or Paste Apache configuration content. ctrl-d when done\n"
+	newconfig="$(cat)" #end with CTRL+D
+	
+	if [ -n "$newconfig" ]; then
+		touch "$newConf"
+		echo -e "$newconfig" > "$newConf"
+		validateConfig "$newConf" "add"
+	fi
+	
+	printApacheRestart "Adding"
+}
+
 command_edit()
 {
 	#Get the configuration type, then shift it off the arguments
@@ -544,8 +577,8 @@ command_edit()
 	fi
 	
 	#Use the editor to edit the config file of the input type and name
-	"${editor}" "${configDirectory}/${configType}s-${availablePath}/${name}.${fileSuffix}"
-	
+	"${editor}" "${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}"
+	validateConfig "$newConf" "edit"
 	printApacheRestart "Editing"
 }
 

@@ -534,7 +534,7 @@ command_list()
 }
 
 validateConfig() {
-	httpd -t -f /etc/httpd/conf/httpd.conf "$1" || command_edit
+	httpd -t -f $httpdFile || command_edit
 }
 
 command_add() 
@@ -551,7 +551,7 @@ command_add()
 		exit 1
 	fi
 
-	echo -e "Pipe or Paste Apache configuration content. ctrl-d when done\n"
+	echo -e "Paste Apache configuration content. ctrl-d when done, ctrl+c to cancel\n"
 	newconfig="$(cat)" #end with CTRL+D
 	
 	if [ -n "$newconfig" ]; then

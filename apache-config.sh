@@ -20,7 +20,7 @@ if which httpd 1>/dev/null 2>&1; then
 	httpdFile="$(grep "SERVER_CONFIG_FILE" <<< "$httpdV" | sed -nr 's@^.+\s*=\s*"(.*)"$@\1@p')" #$httpdConf
 	configRoot="$(sed -e 's@/httpd.conf$@@'  <<< "$httpdFile")" #confRoot
 	httpdConfPath="$httpdRoot/$configRoot"
-	cd "$httpdConfPath"
+	cd "$httpdRoot"
 else
 	# If not present, show an error message and exit with failure
 	cat 1>&2 <<-EOF
@@ -37,7 +37,7 @@ fi
 version="0_1_1"
 environmentVariable="VENDOR_MPLEWIS_CONFIG_CONTROLLER"
 
-configDir="apache-config" #the apache-config dir inside of the apache config dir
+configDir="apache-config" #the apache-config dir inside of the apache  config dir
 configPath="${configRoot}/${configDir}" #absolute path to the apache-config dir
 fileSuffix="conf" #file extension for config files
 controllerFileName="config-controller.${fileSuffix}"

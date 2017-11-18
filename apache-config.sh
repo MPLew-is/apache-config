@@ -286,6 +286,7 @@ command_install()
 }
 
 validateConfig() {
+	#httpd -t -f "$1"
 	httpd -t -f $httpdFile #|| command_edit
 }
 
@@ -294,7 +295,7 @@ reloadApache() {
 }
 
 validateReload() {
-	validateConfig "$1" && (reloadApache && echoStatus "$2") || echoStatus "A validation error has occurred. Apache has not been reloaded"
+	validateConfig "$1" && (reloadApache && echoStatus "$2 Apache has been reloaded.") || echoStatus "A validation error has occurred. Apache has not been reloaded"
 }
 
 #Validate the input enable/disable type, exiting on failure
@@ -325,152 +326,6 @@ validateNames() {
 }
 
 
-#Enable configuration files of the given type and names
-command_enable() {
-	#Check installation before performing enable command
-	command_check 1>/dev/null
-	
-	#Get the configuration type, then shift it off the arguments list to allow for iterating
-	configType="$(validateType "${1}")"
-	shift
-	
-	#Validate that at least one configuration name was given
-	validateNames "${@}"
-	
-	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
-	directoryPrefix="${configPath}/${configType}s"
-	
-	
-	#Multiple configuration names can be provided, so shift through each argument and process each
-	while [ "${#}" -gt "0" ]
-	do
-		#Set initial variables
-		configName="${1}"
-		fileName="${configName}.${fileSuffix}"
-		availableDirectory="${directoryPrefix}-${availablePath}"
-		availableFile="${availableDirectory}/${fileName}"
-		
-		#Check if the file is actually available, fail if not
-		if [ ! -f "${availableFile}" ]
-		then
-			#If the given input is a file name that exists, copy it into the available directory and enable it from there
-			if [ -f "${configName}" ]
-			then
-				#Get just the file name, and convert any existing file extension to the managed file suffix
-				fileName="$(basename "${1}")"
-				configName="${fileName%.*}"
-				fileName="${configName}.${fileSuffix}"
-				
-				#Copy the file into the appropriate available directory
-				printStatus "Copying file '${1}' into '${configType}s-${availablePath}'... "
-				
-				if cp "${1}" "${availableDirectory}/${fileName}"
-				then
-					echoStatus "done"
-					
-				else
-					echoStatus "ERROR"
-					return 33
-				fi
-			
-			else
-				echo "File '${availableFile}' does not exist" 1>&2
-				return 31
-			fi
-		fi
-		
-		#Get the path in which to store the symlink
-		enabledFile="${directoryPrefix}-${enabledPath}/${fileName}"
-		
-		#Check if the file is already enabled, fail if so
-		if [ -e "${enabledFile}" ]
-		then
-			echo "File '${enabledFile}' is already enabled (symlinked into the '${configType}-${enabledPath}' directory)" 1>&2
-			return 32
-		fi
-		
-		
-		#Symlink the config file from the available directory into the enabled directory
-		printStatus "Enabling ${configType} '${configName}'... "
-		
-		if ln -sf "../${configType}s-${availablePath}/${fileName}" "${enabledFile}"
-		then
-			echoStatus "done"
-		
-		else
-			echoStatus "ERROR"
-		fi
-		
-		
-		shift
-	done
-	
-	#Print Apache restart message
-	printApacheRestart "Enabling"
-}
-
-
-command_disable() {
-	#Check installation before performing disable command
-	command_check 1>/dev/null
-	
-	#Get the configuration type, then shift it off the arguments list to allow for iterating
-	configType="$(validateType "${1}")"
-	shift
-	
-	#Validate that at least one configuration name was given
-	validateNames "${@}"
-	
-	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
-	directoryPrefix="${configPath}/${configType}s"
-	
-	
-	#Multiple config names can be provided, so shift through each argument and process each
-	while [ "${#}" -gt "0" ]
-	do
-		#Set variables for the file to be unlinked
-		fileName="${1}.${fileSuffix}"
-		file="${directoryPrefix}-${enabledPath}/${fileName}"
-		
-		#Check to see if the symlink actually exists in the enabled directory, fail if not
-		if [ ! -L "${file}" ]
-		then
-			echo "File '${file}' does not exist" 1>&2
-			return 41
-		fi
-		
-		
-		#Remove the symlink file pointing at the available directory
-		printStatus "Disabling ${configType} '${1}'... "
-		
-		if rm "${directoryPrefix}-${enabledPath}/${fileName}"
-		then
-			echoStatus "done"
-		
-		else
-			echoStatus "ERROR"
-		fi
-		
-		shift
-	done
-	
-	#Print Apache restart message
-	printApacheRestart "Disabling"
-}
-
-command_remove() {
-	#Get the configuration type, then shift it off the arguments
-	configType="$(validateType "${1}")"
-	name="${2}"
-	
-	rmConf=${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}
-
-	if [ -f "$rmConf" ]; then
-		#file exists -- SHOULD ask if we want to overwrite and/or open editor, but we'll just suggest to edit instead
-		rm -f "$rmConf" && reloadApache && echo -e "The ${name} ${configType} configuration file has been removed and apache reloaded."
-		exit 1
-	fi
-}
 
 #Check for the presence of the environment variable definition in httpd.conf
 checkEnvironmentVariable()
@@ -556,6 +411,155 @@ command_list()
 	}
 }
 
+#Enable configuration files of the given type and names
+command_enable() {
+	#Check installation before performing enable command
+	command_check 1>/dev/null
+	
+	#Get the configuration type, then shift it off the arguments list to allow for iterating
+	configType="$(validateType "${1}")"
+	shift
+	
+	#Validate that at least one configuration name was given
+	validateNames "${@}"
+	
+	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
+	directoryPrefix="${configPath}/${configType}s"
+	
+	
+	#Multiple configuration names can be provided, so shift through each argument and process each
+	while [ "${#}" -gt "0" ]
+	do
+		#Set initial variables
+		configName="${1}"
+		fileName="${configName}.${fileSuffix}"
+		availableDirectory="${directoryPrefix}-${availablePath}"
+		availableFile="${availableDirectory}/${fileName}"
+		
+		#Check if the file is actually available, fail if not
+		if [ ! -f "${availableFile}" ]
+		then
+			#If the given input is a file name that exists, copy it into the available directory and enable it from there
+			if [ -f "${configName}" ]
+			then
+				#Get just the file name, and convert any existing file extension to the managed file suffix
+				fileName="$(basename "${1}")"
+				configName="${fileName%.*}"
+				fileName="${configName}.${fileSuffix}"
+				
+				#Copy the file into the appropriate available directory
+				printStatus "Copying file '${1}' into '${configType}s-${availablePath}'... "
+				
+				if cp "${1}" "${availableDirectory}/${fileName}"
+				then
+					echoStatus "done"
+					
+				else
+					echoStatus "ERROR"
+					return 33
+				fi
+			
+			else
+				echo "File '${availableFile}' does not exist" 1>&2
+				return 31
+			fi
+		fi
+		
+		#Get the path in which to store the symlink
+		enabledFile="${directoryPrefix}-${enabledPath}/${fileName}"
+		
+		#Check if the file is already enabled, fail if so
+		if [ -e "${enabledFile}" ]
+		then
+			echo "File '${enabledFile}' is already enabled (symlinked into the '${configType}-${enabledPath}' directory)" 1>&2
+			return 32
+		fi
+		
+		
+		#Symlink the config file from the available directory into the enabled directory
+		printStatus "Enabling ${configType} '${configName}'... "
+		
+		if ln -sf "../${configType}s-${availablePath}/${fileName}" "${enabledFile}"
+		then
+			echoStatus "done"
+		
+		else
+			echoStatus "ERROR"
+		fi
+		
+		
+		shift
+	done
+	
+	#Print Apache restart message
+	#printApacheRestart "Enabling"
+	validateReload "" "\"${name}\" ${configType} configuration enabled."
+}
+
+
+command_disable() {
+	#Check installation before performing disable command
+	command_check 1>/dev/null
+	
+	#Get the configuration type, then shift it off the arguments list to allow for iterating
+	configType="$(validateType "${1}")"
+	shift
+	
+	#Validate that at least one configuration name was given
+	validateNames "${@}"
+	
+	#Set a variable storing the path prefix to use, so that "enabled" or "available" can be easily appended
+	directoryPrefix="${configPath}/${configType}s"
+	
+	
+	#Multiple config names can be provided, so shift through each argument and process each
+	while [ "${#}" -gt "0" ]
+	do
+		#Set variables for the file to be unlinked
+		fileName="${1}.${fileSuffix}"
+		file="${directoryPrefix}-${enabledPath}/${fileName}"
+		
+		#Check to see if the symlink actually exists in the enabled directory, fail if not
+		if [ ! -L "${file}" ]
+		then
+			echo "File '${file}' does not exist" 1>&2
+			return 41
+		fi
+		
+		
+		#Remove the symlink file pointing at the available directory
+		printStatus "Disabling ${configType} '${1}'... "
+		
+		if rm "${directoryPrefix}-${enabledPath}/${fileName}"
+		then
+			echoStatus "done"
+		
+		else
+			echoStatus "ERROR"
+		fi
+		
+		shift
+	done
+	
+	#Print Apache restart message
+	#printApacheRestart "Disabling"
+	validateReload "" "\"${name}\" ${configType} configuration disabled."
+}
+
+command_remove() {
+	#Get the configuration type, then shift it off the arguments
+	configType="$(validateType "${1}")"
+	name="${2}"
+	
+	rmConf=${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}
+
+	if [ -f "$rmConf" ]; then
+		#file exists -- SHOULD ask if we want to overwrite and/or open editor, but we'll just suggest to edit instead
+		rm -f "$rmConf" && reloadApache && echo -e "The ${name} ${configType} configuration file has been removed and apache reloaded."
+		exit 1
+	fi
+}
+
 
 command_add() {
 	#Get the configuration type, then shift it off the arguments
@@ -577,7 +581,7 @@ command_add() {
 		touch "$newConf"
 		echo -e "$newconfig" > "$newConf"
 		#validateConfig "$newConf" "add"
-		validateReload "$newConf" "New ${configType} \"${name}\" configuration added. Apache has been reloaded."
+		validateReload "" "New ${configType} \"${name}\" configuration added. Apache has been reloaded."
 		#validateConfig "$newConf" && (restartApache && echoStatus "New ${configType} \"${name}\" configuration added. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
 	fi
 	
@@ -601,7 +605,7 @@ command_edit() {
 	#Use the editor to edit the config file of the input type and name
 	"${editor}" "${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}"
 	#validateConfig "$newConf" && (restartApache && echoStatus "Editing ${configType} \"${name}\" complete. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
-	validateReload "$newConf" "Editing ${configType} \"${name}\" complete. Apache has been reloaded."
+	validateReload "" "Editing ${configType} \"${name}\" complete. Apache has been reloaded."
 }
 
 

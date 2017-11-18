@@ -448,6 +448,9 @@ command_disable()
 	printApacheRestart "Disabling"
 }
 
+command_remove() {
+
+}
 
 #Check for the presence of the environment variable definition in httpd.conf
 checkEnvironmentVariable()
@@ -534,10 +537,13 @@ command_list()
 }
 
 validateConfig() {
-	httpd -t -f $httpdFile || command_edit
+	httpd -t -f $httpdFile #|| command_edit
 }
-restartApache() {
+reloadApache() {
 	apachectl graceful
+}
+validateReload() {
+	validateConfig "$1" && (reloadApache && echoStatus "$2") || echoStatus "A validation error has occurred. Apache has not been reloaded"
 }
 command_add() 
 {
@@ -560,7 +566,8 @@ command_add()
 		touch "$newConf"
 		echo -e "$newconfig" > "$newConf"
 		#validateConfig "$newConf" "add"
-		validateConfig "$newConf" && (restartApache && echoStatus "New ${configType} \"${name}\" configuration added. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
+		validateReload "$newConf" "New ${configType} \"${name}\" configuration added. Apache has been reloaded."
+		#validateConfig "$newConf" && (restartApache && echoStatus "New ${configType} \"${name}\" configuration added. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
 	fi
 	
 	#printApacheRestart "Adding"
@@ -583,7 +590,8 @@ command_edit()
 	
 	#Use the editor to edit the config file of the input type and name
 	"${editor}" "${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}"
-	validateConfig "$newConf" && (restartApache && echoStatus "Editing ${configType} \"${name}\" complete. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
+	#validateConfig "$newConf" && (restartApache && echoStatus "Editing ${configType} \"${name}\" complete. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
+	validateReload "$newConf" "Editing ${configType} \"${name}\" complete. Apache has been reloaded."
 }
 
 

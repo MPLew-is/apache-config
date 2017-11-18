@@ -536,7 +536,9 @@ command_list()
 validateConfig() {
 	httpd -t -f $httpdFile || command_edit
 }
-
+restartApache() {
+	apachectl graceful
+}
 command_add() 
 {
 	#Get the configuration type, then shift it off the arguments
@@ -557,10 +559,11 @@ command_add()
 	if [ -n "$newconfig" ]; then
 		touch "$newConf"
 		echo -e "$newconfig" > "$newConf"
-		validateConfig "$newConf" "add"
+		#validateConfig "$newConf" "add"
+		validateConfig "$newConf" && (restartApache && echoStatus "New ${configType} \"${name}\" configuration added. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
 	fi
 	
-	printApacheRestart "Adding"
+	#printApacheRestart "Adding"
 }
 
 command_edit()
@@ -580,8 +583,7 @@ command_edit()
 	
 	#Use the editor to edit the config file of the input type and name
 	"${editor}" "${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}"
-	validateConfig "$newConf" "edit"
-	printApacheRestart "Editing"
+	validateConfig "$newConf" && (restartApache && echoStatus "Editing ${configType} \"${name}\" complete. Apache has been reloaded.") || echoStatus "Apache has not been reloaded"
 }
 
 

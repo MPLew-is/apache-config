@@ -493,7 +493,7 @@ command_enable() {
 	
 	#Print Apache restart message
 	#printApacheRestart "Enabling"
-	validateReload "" "\"${name}\" ${configType} configuration enabled."
+	validateReload "" "\"${1}\" ${configType} configuration enabled."
 }
 
 
@@ -543,7 +543,7 @@ command_disable() {
 	
 	#Print Apache restart message
 	#printApacheRestart "Disabling"
-	validateReload "" "\"${name}\" ${configType} configuration disabled."
+	validateReload "" "\"${1}\" ${configType} configuration disabled."
 }
 
 command_remove() {

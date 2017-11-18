@@ -187,6 +187,7 @@ command_help()
 }
 
 
+
 #Install the necessary configuration blocks, files, and directories for the script to run
 command_install()
 {
@@ -282,10 +283,20 @@ command_install()
 	return 0
 }
 
+validateConfig() {
+	httpd -t -f $httpdFile #|| command_edit
+}
+
+reloadApache() {
+	apachectl graceful
+}
+
+validateReload() {
+	validateConfig "$1" && (reloadApache && echoStatus "$2") || echoStatus "A validation error has occurred. Apache has not been reloaded"
+}
 
 #Validate the input enable/disable type, exiting on failure
-validateType()
-{
+validateType() {
 	#Validate the config type against the prefedined types
 	configType="${1}"
 	if [ "${1}" != "${module}" ] && [ "${1}" != "${config}" ] && [ "${1}" != "${site}" ] && [ "${1}" != "${cleanup}" ]
@@ -300,8 +311,7 @@ validateType()
 }
 
 #Validate that configuration names are provided, or exit if not
-validateNames()
-{
+validateNames() {
 	if [ "${#}" -lt "1" ]
 	then
 		echo "No ${module}/${config}/${site}/${cleanup} names were provided" 1>&2
@@ -314,8 +324,7 @@ validateNames()
 
 
 #Enable configuration files of the given type and names
-command_enable()
-{
+command_enable() {
 	#Check installation before performing enable command
 	command_check 1>/dev/null
 	
@@ -399,8 +408,7 @@ command_enable()
 }
 
 
-command_disable() 
-{
+command_disable() {
 	#Check installation before performing disable command
 	command_check 1>/dev/null
 	
@@ -449,7 +457,17 @@ command_disable()
 }
 
 command_remove() {
+	#Get the configuration type, then shift it off the arguments
+	configType="$(validateType "${1}")"
+	name="${2}"
+	
+	rmConf=${configPath}/${configType}s-${availablePath}/${name}.${fileSuffix}
 
+	if [ -f "$rmConf" ]; then
+		#file exists -- SHOULD ask if we want to overwrite and/or open editor, but we'll just suggest to edit instead
+		rm -f "$rmConf" && reloadApache && echo -e "The ${name} ${configType} configuration file has been removed and apache reloaded."
+		exit 1
+	fi
 }
 
 #Check for the presence of the environment variable definition in httpd.conf
@@ -536,17 +554,8 @@ command_list()
 	}
 }
 
-validateConfig() {
-	httpd -t -f $httpdFile #|| command_edit
-}
-reloadApache() {
-	apachectl graceful
-}
-validateReload() {
-	validateConfig "$1" && (reloadApache && echoStatus "$2") || echoStatus "A validation error has occurred. Apache has not been reloaded"
-}
-command_add() 
-{
+
+command_add() {
 	#Get the configuration type, then shift it off the arguments
 	configType="$(validateType "${1}")"
 	name="${2}"
@@ -573,8 +582,7 @@ command_add()
 	#printApacheRestart "Adding"
 }
 
-command_edit()
-{
+command_edit() {
 	#Get the configuration type, then shift it off the arguments
 	configType="$(validateType "${1}")"
 	name="${2}"
